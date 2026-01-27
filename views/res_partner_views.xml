@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Add Surgical Center fields to Partner Form -->
+    <record id="view_partner_form_surgery" model="ir.ui.view">
+        <field name="name">res.partner.form.surgery</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Add Surgical Center section in Sales & Purchase tab -->
+            <xpath expr="//page[@name='sales_purchases']" position="inside">
+                <group string="Surgical Center" name="surgical_center" invisible="not is_surgicenter">
+                    <field name="processing_fee_pct"/>
+                </group>
+            </xpath>
+
+            <!-- Add is_surgicenter checkbox after is_company -->
+            <xpath expr="//field[@name='is_company']" position="after">
+                <field name="is_surgicenter"/>
+            </xpath>
+
+        </field>
+    </record>
+</odoo>

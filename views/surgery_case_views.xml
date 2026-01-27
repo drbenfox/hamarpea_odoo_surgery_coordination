@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Surgery Case Form View -->
+    <record id="view_surgery_case_form" model="ir.ui.view">
+        <field name="name">surgery.case.form</field>
+        <field name="model">surgery.case</field>
+        <field name="arch" type="xml">
+            <form string="Surgery Case" class="o_form_view o_xxl_form_view">
+                <header>
+                    <field name="stage_id" widget="statusbar" options="{'clickable': '1', 'fold_field': 'fold'}"/>
+                </header>
+
+                <sheet class="oe_form_sheet_width">
+                    <!-- Smart Buttons -->
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_sale_order"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-shopping-cart"
+                                invisible="not sale_order_id">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_text">Sale Order</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- Title -->
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+
+                    <!-- Patient Info Header (like medical visit) -->
+                    <group>
+                        <group>
+                            <field name="partner_id"
+                                   domain="[('is_company', '=', False)]"
+                                   options="{'no_create': True, 'no_quick_create': True}"/>
+                            <field name="surgeon_employee_id"/>
+                            <field name="coordinator_id"/>
+                            <label for="surgery_product_id"/>
+                            <div class="o_row">
+                                <field name="surgery_product_id" class="oe_inline"/>
+                                <field name="surgery_product_privilege_warning" invisible="1"/>
+                                <span invisible="not surgery_product_privilege_warning" class="text-warning" title="Surgeon may not be authorized for this procedure">
+                                    <i class="fa fa-exclamation-triangle fa-lg"/>
+                                </span>
+                            </div>
+                        </group>
+                        <group>
+                            <field name="patient_id_number"/>
+                            <field name="patient_phone"/>
+                            <field name="patient_email"/>
+                            <field name="health_insurance_display"/>
+                            <field name="demographics_display" nolabel="1"/>
+                        </group>
+                    </group>
+
+                    <!-- Status Indicators -->
+                    <group>
+                        <group>
+                            <field name="medical_status" widget="badge" decoration-success="medical_status == 'confirmed'" decoration-warning="medical_status == 'review_needed'"/>
+                            <field name="financial_status" widget="badge" decoration-success="financial_status == 'approved'" decoration-warning="financial_status == 'pending'"/>
+                        </group>
+                        <group>
+                            <field name="ready_for_scheduling" widget="boolean"/>
+                            <field name="ready_for_surgery" widget="boolean"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <!-- Tab 1: Financials -->
+                        <page string="Financials" name="financials">
+                            <group>
+                                <group string="Sale Order">
+                                    <field name="sale_order_id"/>
+                                    <field name="deposit_paid" widget="boolean"/>
+                                    <field name="currency_id" invisible="1"/>
+                                </group>
+
+                                <group string="Insurance">
+                                    <label for="insurance_company_id"/>
+                                    <div class="o_row">
+                                        <field name="insurance_company_id"
+                                               options="{'no_create': True}"
+                                               class="oe_inline"/>
+                                        <field name="insurance_privilege_warning" invisible="1"/>
+                                        <span invisible="not insurance_privilege_warning" class="text-warning" title="Surgeon may not have privileges with this insurance company">
+                                            <i class="fa fa-exclamation-triangle fa-lg"/>
+                                        </span>
+                                    </div>
+                                    <field name="is_contracted_insurance"
+                                           invisible="not insurance_company_id"/>
+                                    <field name="insurance_claim_number"
+                                           invisible="not insurance_company_id"/>
+                                    <field name="insurance_claim_status"
+                                           invisible="not insurance_company_id"/>
+                                    <field name="insurance_approved_amount"
+                                           invisible="not insurance_company_id"/>
+                                </group>
+                            </group>
+
+                            <group string="Surgery Plan">
+                                <field name="surgery_plan" nolabel="1" placeholder="Doctor describes planned procedures here. Coordinator uses this to build the Sale Order."/>
+                            </group>
+                        </page>
+
+                        <!-- Tab 2: Medical Checkup -->
+                        <page string="Medical Checkup" name="medical">
+                            <group>
+                                <group string="Medical Clearance">
+                                    <field name="medical_confirmed" readonly="1"/>
+                                    <field name="medical_confirmed_by" invisible="not medical_confirmed"/>
+                                    <field name="medical_confirmed_date" invisible="not medical_confirmed"/>
+                                    <button name="action_confirm_medical"
+                                            string="Confirm Medical Clearance"
+                                            type="object"
+                                            class="btn-success"
+                                            icon="fa-check-circle"
+                                            invisible="medical_confirmed"/>
+                                    <button name="action_create_medical_checklist"
+                                            string="Recreate Checklist"
+                                            type="object"
+                                            class="btn-secondary"
+                                            icon="fa-refresh"/>
+                                </group>
+                            </group>
+
+                            <group string="Medical Checklist">
+                                <field name="medical_item_ids" nolabel="1"/>
+                            </group>
+
+                            <group string="Drug Restrictions">
+                                <field name="drug_restriction_ids" widget="many2many_tags" nolabel="1" placeholder="Select drugs patient should stop before surgery"/>
+                            </group>
+                        </page>
+
+                        <!-- Tab 3: Booking -->
+                        <page string="Booking" name="booking">
+                            <group>
+                                <group string="Surgery Details">
+                                    <field name="surgery_date"/>
+                                    <field name="surgery_location"/>
+                                    <field name="surgicenter_id"
+                                           invisible="surgery_location != 'external'"
+                                           options="{'no_create': True}"/>
+                                    <field name="calendar_event_id" readonly="1"/>
+                                </group>
+
+                                <group string="Surgical Center Commission" invisible="surgery_location != 'external'">
+                                    <field name="expected_surgeon_payment" widget="monetary"/>
+                                    <field name="processing_fee_amount" widget="monetary"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Surgery Case Kanban View -->
+    <record id="view_surgery_case_kanban" model="ir.ui.view">
+        <field name="name">surgery.case.kanban</field>
+        <field name="model">surgery.case</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="stage_id" class="o_kanban_small_column">
+                <field name="partner_id"/>
+                <field name="surgeon_employee_id"/>
+                <field name="coordinator_id"/>
+                <field name="surgery_date"/>
+                <field name="surgery_product_id"/>
+                <field name="medical_status"/>
+                <field name="financial_status"/>
+                <field name="ready_for_scheduling"/>
+                <field name="ready_for_surgery"/>
+                <field name="stage_id"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_card oe_kanban_global_click">
+                            <div class="oe_kanban_content">
+                                <div class="o_kanban_record_top">
+                                    <div class="o_kanban_record_headings">
+                                        <strong class="o_kanban_record_title">
+                                            <field name="name"/>
+                                        </strong>
+                                    </div>
+                                </div>
+
+                                <div class="o_kanban_record_body">
+                                    <div>
+                                        <i class="fa fa-user"/> <field name="partner_id"/>
+                                    </div>
+                                    <div t-if="record.surgery_product_id.value">
+                                        <i class="fa fa-stethoscope"/> <field name="surgery_product_id"/>
+                                    </div>
+                                    <div t-if="record.surgery_date.value">
+                                        <i class="fa fa-calendar"/> <field name="surgery_date"/>
+                                    </div>
+                                    <div t-if="record.coordinator_id.value">
+                                        <i class="fa fa-user-md"/> <field name="coordinator_id"/>
+                                    </div>
+                                </div>
+
+                                <div class="o_kanban_record_bottom">
+                                    <div class="oe_kanban_bottom_left">
+                                        <span t-if="record.ready_for_surgery.raw_value" class="badge rounded-pill text-bg-success">✅ Ready for Surgery</span>
+                                        <span t-elif="record.ready_for_scheduling.raw_value" class="badge rounded-pill text-bg-info">📅 Ready to Schedule</span>
+                                        <span t-if="record.medical_status.raw_value == 'review_needed'" class="badge rounded-pill text-bg-warning">⚠️ Medical Review</span>
+                                    </div>
+                                    <div class="oe_kanban_bottom_right">
+                                        <field name="surgeon_user_id" widget="many2one_avatar_user"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Surgery Case Tree View -->
+    <record id="view_surgery_case_tree" model="ir.ui.view">
+        <field name="name">surgery.case.tree</field>
+        <field name="model">surgery.case</field>
+        <field name="arch" type="xml">
+            <list string="Surgery Cases">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="surgery_product_id"/>
+                <field name="surgeon_employee_id"/>
+                <field name="coordinator_id"/>
+                <field name="surgery_date"/>
+                <field name="stage_id"/>
+                <field name="medical_status" widget="badge" decoration-success="medical_status == 'confirmed'" decoration-warning="medical_status == 'review_needed'"/>
+                <field name="financial_status" widget="badge" decoration-success="financial_status == 'approved'" decoration-warning="financial_status == 'pending'"/>
+                <field name="ready_for_scheduling" widget="boolean"/>
+                <field name="ready_for_surgery" widget="boolean"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Surgery Case Search View -->
+    <record id="view_surgery_case_search" model="ir.ui.view">
+        <field name="name">surgery.case.search</field>
+        <field name="model">surgery.case</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="partner_id" filter_domain="['|', ('partner_id.name', 'ilike', self), ('partner_id.vat', 'ilike', self)]"/>
+                <field name="surgeon_employee_id"/>
+                <field name="coordinator_id"/>
+                <field name="stage_id"/>
+
+                <filter string="My Cases" name="my_cases" domain="[('coordinator_id', '=', uid)]"/>
+                <filter string="Ready to Schedule" name="ready_to_schedule" domain="[('ready_for_scheduling', '=', True)]"/>
+                <filter string="Ready for Surgery" name="ready_for_surgery" domain="[('ready_for_surgery', '=', True)]"/>
+                <filter string="Medical Review Needed" name="medical_review" domain="[('medical_status', '=', 'review_needed')]"/>
+
+                <separator/>
+                <filter string="In-House" name="in_house" domain="[('surgery_location', '=', 'in_house')]"/>
+                <filter string="External" name="external" domain="[('surgery_location', '=', 'external')]"/>
+
+                <group string="Group By">
+                    <filter name="group_stage" string="Stage" context="{'group_by': 'stage_id'}"/>
+                    <filter name="group_surgeon" string="Surgeon" context="{'group_by': 'surgeon_employee_id'}"/>
+                    <filter name="group_coordinator" string="Coordinator" context="{'group_by': 'coordinator_id'}"/>
+                    <filter name="group_surgery_date" string="Surgery Date" context="{'group_by': 'surgery_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Surgery Case Action -->
+    <record id="action_surgery_case" model="ir.actions.act_window">
+        <field name="name">Surgery Cases</field>
+        <field name="res_model">surgery.case</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="view_surgery_case_search"/>
+        <field name="context">{'search_default_group_stage': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first surgery case
+            </p>
+            <p>
+                Track patient surgical journey from consultation through recovery.
+            </p>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Surgery Medical Item Form View -->
+    <record id="view_surgery_medical_item_form" model="ir.ui.view">
+        <field name="name">surgery.medical.item.form</field>
+        <field name="model">surgery.medical.item</field>
+        <field name="arch" type="xml">
+            <form string="Medical Checklist Item">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="surgery_case_id"/>
+                            <field name="test_type"/>
+                            <field name="status"/>
+                            <field name="is_required"/>
+                        </group>
+                        <group>
+                            <field name="reviewed_by"/>
+                            <field name="reviewed_date"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="notes" placeholder="Add any comments or observations"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Surgery Medical Item Tree View -->
+    <record id="view_surgery_medical_item_tree" model="ir.ui.view">
+        <field name="name">surgery.medical.item.tree</field>
+        <field name="model">surgery.medical.item</field>
+        <field name="arch" type="xml">
+            <list string="Medical Checklist Items" editable="bottom" decoration-danger="status == 'received_abnormal'" decoration-muted="status == 'not_applicable'">
+                <field name="test_type"/>
+                <field name="status"/>
+                <field name="is_required"/>
+                <field name="reviewed_by"/>
+                <field name="reviewed_date"/>
+                <field name="notes"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Surgery Medical Item Action -->
+    <record id="action_surgery_medical_item" model="ir.actions.act_window">
+        <field name="name">Medical Checklist Items</field>
+        <field name="res_model">surgery.medical.item</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

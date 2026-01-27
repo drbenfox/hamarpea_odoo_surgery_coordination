@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Main Menu -->
+    <menuitem id="menu_surgery_root"
+              name="Surgery"
+              sequence="10"
+              web_icon="hamarpea-odoo-surgery-coordination,static/description/icon.png"/>
+
+    <!-- Surgery Cases Menu -->
+    <menuitem id="menu_surgery_cases"
+              name="Surgery Cases"
+              parent="menu_surgery_root"
+              action="action_surgery_case"
+              sequence="10"/>
+
+    <!-- Configuration Menu -->
+    <menuitem id="menu_surgery_config"
+              name="Configuration"
+              parent="menu_surgery_root"
+              sequence="100"/>
+
+    <menuitem id="menu_surgery_stages"
+              name="Stages"
+              parent="menu_surgery_config"
+              action="action_surgery_stage"
+              sequence="10"/>
+
+    <menuitem id="menu_surgery_drug_restrictions"
+              name="Drug Restrictions"
+              parent="menu_surgery_config"
+              action="action_surgery_drug_restriction"
+              sequence="20"/>
+</odoo>

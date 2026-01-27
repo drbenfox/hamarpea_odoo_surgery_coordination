@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Add Clinical Privilege to Employee Form -->
+    <record id="view_employee_form_insurance" model="ir.ui.view">
+        <field name="name">hr.employee.form.clinical.privilege</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='hr_settings']" position="after">
+                <page name="clinical_privilege" string="Clinical Privilege">
+                    <group>
+                        <group string="Kupot Holim">
+                            <field name="kupot_holim_ids"
+                                   widget="many2many_tags"
+                                   options="{'no_create': True, 'no_quick_create': True}"
+                                   placeholder="Select Kupot Holim this surgeon can bill"
+                                   nolabel="1"/>
+                        </group>
+                        <group string="Private Insurance">
+                            <field name="private_insurance_ids"
+                                   widget="many2many_tags"
+                                   options="{'no_create': True, 'no_quick_create': True}"
+                                   placeholder="Select private insurance companies"
+                                   nolabel="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Authorized Procedures">
+                            <field name="authorized_procedure_ids"
+                                   widget="many2many_tags"
+                                   options="{'no_create': True, 'no_quick_create': True}"
+                                   placeholder="Select procedures this surgeon is authorized to perform"
+                                   nolabel="1"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

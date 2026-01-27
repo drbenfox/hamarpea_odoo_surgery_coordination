@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Surgery Stage Form View -->
+    <record id="view_surgery_stage_form" model="ir.ui.view">
+        <field name="name">surgery.stage.form</field>
+        <field name="model">surgery.stage</field>
+        <field name="arch" type="xml">
+            <form string="Surgery Stage">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="sequence"/>
+                        <field name="fold"/>
+                        <field name="description"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Surgery Stage Tree View -->
+    <record id="view_surgery_stage_tree" model="ir.ui.view">
+        <field name="name">surgery.stage.tree</field>
+        <field name="model">surgery.stage</field>
+        <field name="arch" type="xml">
+            <list string="Surgery Stages">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="fold"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Surgery Stage Action -->
+    <record id="action_surgery_stage" model="ir.actions.act_window">
+        <field name="name">Surgery Stages</field>
+        <field name="res_model">surgery.stage</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first surgery stage
+            </p>
+            <p>
+                Stages are used to organize surgery cases in the pipeline.
+            </p>
+        </field>
+    </record>
+</odoo>

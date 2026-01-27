@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_surgery_case_all,surgery.case.all,model_surgery_case,base.group_user,1,1,1,1
+access_surgery_stage_all,surgery.stage.all,model_surgery_stage,base.group_user,1,1,1,0
+access_surgery_stage_manager,surgery.stage.manager,model_surgery_stage,base.group_system,1,1,1,1
+access_surgery_medical_item_all,surgery.medical.item.all,model_surgery_medical_item,base.group_user,1,1,1,1
+access_surgery_drug_restriction_all,surgery.drug.restriction.all,model_surgery_drug_restriction,base.group_user,1,1,1,0
+access_surgery_drug_restriction_manager,surgery.drug.restriction.manager,model_surgery_drug_restriction,base.group_system,1,1,1,1
