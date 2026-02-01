@@ -183,10 +183,106 @@ class SurgeryCase(models.Model):
         tracking=True
     )
 
+    sale_order_state = fields.Selection(
+        related='sale_order_id.state',
+        string='SO Status',
+        readonly=True
+    )
+
     deposit_paid = fields.Boolean(
         string='Deposit Paid',
         compute='_compute_deposit_paid',
         store=True
+    )
+
+    financial_cleared = fields.Boolean(
+        string='Financial Clearance Confirmed',
+        tracking=True,
+        help='Manually confirm financial clearance regardless of payment status'
+    )
+
+    financial_cleared_by = fields.Many2one(
+        'res.users',
+        string='Cleared By',
+        readonly=True
+    )
+
+    financial_cleared_date = fields.Datetime(
+        string='Cleared Date',
+        readonly=True
+    )
+
+    # ==================== PAYMENT TRACKING ====================
+    surgery_total = fields.Monetary(
+        related='sale_order_id.amount_total',
+        string='Surgery Total',
+        readonly=True
+    )
+
+    # Expected amounts
+    expected_client_amount = fields.Monetary(
+        string='Client Expected',
+        tracking=True,
+        help='Amount expected from client (deposit)'
+    )
+
+    expected_surgicenter_amount = fields.Monetary(
+        compute='_compute_expected_surgicenter',
+        store=True,
+        string='Surgicenter Expected',
+        help='Amount to be paid via surgicenter (Surgery Total - Client - Insurance)'
+    )
+
+    # Received amounts
+    client_received = fields.Monetary(
+        compute='_compute_client_received',
+        store=True,
+        string='Client Received',
+        help='Amount received from client (from paid invoices)'
+    )
+
+    insurance_received = fields.Monetary(
+        string='Insurance Received',
+        tracking=True,
+        help='Amount received from insurance company'
+    )
+
+    surgicenter_received = fields.Monetary(
+        string='Surgicenter Received',
+        tracking=True,
+        help='Amount received from surgicenter'
+    )
+
+    # Balance fields (computed)
+    client_balance = fields.Monetary(
+        compute='_compute_balances',
+        string='Client Balance'
+    )
+
+    insurance_balance = fields.Monetary(
+        compute='_compute_balances',
+        string='Insurance Balance'
+    )
+
+    surgicenter_balance = fields.Monetary(
+        compute='_compute_balances',
+        string='Surgicenter Balance'
+    )
+
+    # Totals
+    total_expected = fields.Monetary(
+        compute='_compute_totals',
+        string='Total Expected'
+    )
+
+    total_received = fields.Monetary(
+        compute='_compute_totals',
+        string='Total Received'
+    )
+
+    total_balance = fields.Monetary(
+        compute='_compute_totals',
+        string='Total Balance'
     )
 
     # ==================== INSURANCE ====================
@@ -246,6 +342,44 @@ class SurgeryCase(models.Model):
         compute='_compute_expected_surgeon_payment',
         store=True,
         string='Processing Fee Amount'
+    )
+
+    # ==================== AUDIT ====================
+    audit_status = fields.Selection([
+        ('incomplete', 'Incomplete'),
+        ('complete', 'Complete')
+    ], compute='_compute_audit_status', store=True, tracking=True, string='Audit Status')
+
+    insurance_payment_confirmed = fields.Boolean(
+        string='Insurance Payment Confirmed',
+        tracking=True
+    )
+
+    insurance_payment_confirmed_by = fields.Many2one(
+        'res.users',
+        string='Confirmed By',
+        readonly=True
+    )
+
+    insurance_payment_confirmed_date = fields.Datetime(
+        string='Confirmed Date',
+        readonly=True
+    )
+
+    surgicenter_payment_confirmed = fields.Boolean(
+        string='Surgicenter Payment Confirmed',
+        tracking=True
+    )
+
+    surgicenter_payment_confirmed_by = fields.Many2one(
+        'res.users',
+        string='Confirmed By',
+        readonly=True
+    )
+
+    surgicenter_payment_confirmed_date = fields.Datetime(
+        string='Confirmed Date',
+        readonly=True
     )
 
     # ==================== GATEKEEPING ====================
@@ -337,10 +471,13 @@ class SurgeryCase(models.Model):
             record.demographics_display = ' | '.join(parts) if parts else ''
 
     @api.depends('sale_order_id.state', 'sale_order_id.invoice_ids.payment_state',
-                 'insurance_company_id', 'insurance_claim_status')
+                 'insurance_company_id', 'insurance_claim_status', 'financial_cleared')
     def _compute_financial_status(self):
         for record in self:
-            if not record.sale_order_id or record.sale_order_id.state not in ['sale', 'done']:
+            # Manual financial clearance overrides everything
+            if record.financial_cleared:
+                record.financial_status = 'approved'
+            elif not record.sale_order_id or record.sale_order_id.state not in ['sale', 'done']:
                 record.financial_status = 'incomplete'
             elif not record.deposit_paid:
                 record.financial_status = 'pending'
@@ -428,6 +565,87 @@ class SurgeryCase(models.Model):
                 record.financial_status == 'approved'
             )
 
+    # ==================== PAYMENT TRACKING COMPUTE ====================
+
+    @api.depends('surgery_total', 'expected_client_amount', 'insurance_approved_amount', 'surgery_location')
+    def _compute_expected_surgicenter(self):
+        """Calculate expected surgicenter amount (only for external surgeries)"""
+        for record in self:
+            if record.surgery_location == 'external':
+                record.expected_surgicenter_amount = (
+                    (record.surgery_total or 0) -
+                    (record.expected_client_amount or 0) -
+                    (record.insurance_approved_amount or 0)
+                )
+            else:
+                record.expected_surgicenter_amount = 0
+
+    @api.depends('sale_order_id.invoice_ids.payment_state', 'sale_order_id.invoice_ids.amount_total',
+                 'sale_order_id.invoice_ids.amount_residual')
+    def _compute_client_received(self):
+        """Calculate amount received from client based on paid invoices"""
+        for record in self:
+            total_received = 0
+            if record.sale_order_id and record.sale_order_id.invoice_ids:
+                for inv in record.sale_order_id.invoice_ids:
+                    if inv.move_type == 'out_invoice':
+                        # Amount paid = total - remaining
+                        total_received += inv.amount_total - inv.amount_residual
+            record.client_received = total_received
+
+    @api.depends('expected_client_amount', 'client_received',
+                 'insurance_approved_amount', 'insurance_received',
+                 'expected_surgicenter_amount', 'surgicenter_received')
+    def _compute_balances(self):
+        """Calculate balance for each payment source"""
+        for record in self:
+            record.client_balance = (record.expected_client_amount or 0) - (record.client_received or 0)
+            record.insurance_balance = (record.insurance_approved_amount or 0) - (record.insurance_received or 0)
+            record.surgicenter_balance = (record.expected_surgicenter_amount or 0) - (record.surgicenter_received or 0)
+
+    @api.depends('expected_client_amount', 'insurance_approved_amount', 'expected_surgicenter_amount',
+                 'client_received', 'insurance_received', 'surgicenter_received',
+                 'client_balance', 'insurance_balance', 'surgicenter_balance')
+    def _compute_totals(self):
+        """Calculate total expected, received, and balance"""
+        for record in self:
+            record.total_expected = (
+                (record.expected_client_amount or 0) +
+                (record.insurance_approved_amount or 0) +
+                (record.expected_surgicenter_amount or 0)
+            )
+            record.total_received = (
+                (record.client_received or 0) +
+                (record.insurance_received or 0) +
+                (record.surgicenter_received or 0)
+            )
+            record.total_balance = (
+                (record.client_balance or 0) +
+                (record.insurance_balance or 0) +
+                (record.surgicenter_balance or 0)
+            )
+
+    @api.depends('insurance_balance', 'surgicenter_balance', 'surgery_location',
+                 'insurance_payment_confirmed', 'surgicenter_payment_confirmed',
+                 'insurance_company_id')
+    def _compute_audit_status(self):
+        """Audit is complete when all expected payments are received and confirmed"""
+        for record in self:
+            # Check if insurance payment is settled (if applicable)
+            insurance_ok = True
+            if record.insurance_company_id:
+                insurance_ok = record.insurance_payment_confirmed or record.insurance_balance == 0
+
+            # Check if surgicenter payment is settled (if external)
+            surgicenter_ok = True
+            if record.surgery_location == 'external':
+                surgicenter_ok = record.surgicenter_payment_confirmed or record.surgicenter_balance == 0
+
+            if insurance_ok and surgicenter_ok:
+                record.audit_status = 'complete'
+            else:
+                record.audit_status = 'incomplete'
+
     @api.depends('medical_item_ids.status')
     def _compute_medical_status(self):
         for record in self:
@@ -483,6 +701,78 @@ class SurgeryCase(models.Model):
             'view_mode': 'form',
             'target': 'current',
         }
+
+    def action_create_sale_order(self):
+        """Create a new sale order for this surgery case"""
+        self.ensure_one()
+
+        # Create the sale order
+        sale_order = self.env['sale.order'].create({
+            'partner_id': self.partner_id.id,
+        })
+
+        # Link it to this surgery case
+        self.sale_order_id = sale_order.id
+
+        # Add surgery product if set
+        if self.surgery_product_id:
+            self.env['sale.order.line'].create({
+                'order_id': sale_order.id,
+                'product_id': self.surgery_product_id.id,
+            })
+
+        self.message_post(
+            body=f"Sale Order {sale_order.name} created"
+        )
+
+        # Open the new sale order
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Sale Order',
+            'res_model': 'sale.order',
+            'res_id': sale_order.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
+
+    def action_confirm_financial(self):
+        """Manually confirm financial clearance"""
+        self.ensure_one()
+        self.write({
+            'financial_cleared': True,
+            'financial_cleared_by': self.env.user.id,
+            'financial_cleared_date': fields.Datetime.now()
+        })
+        self.message_post(
+            body=f"Financial clearance confirmed by {self.env.user.name}"
+        )
+        return True
+
+    def action_confirm_insurance_payment(self):
+        """Confirm insurance payment received"""
+        self.ensure_one()
+        self.write({
+            'insurance_payment_confirmed': True,
+            'insurance_payment_confirmed_by': self.env.user.id,
+            'insurance_payment_confirmed_date': fields.Datetime.now()
+        })
+        self.message_post(
+            body=f"Insurance payment confirmed by {self.env.user.name}"
+        )
+        return True
+
+    def action_confirm_surgicenter_payment(self):
+        """Confirm surgicenter payment received"""
+        self.ensure_one()
+        self.write({
+            'surgicenter_payment_confirmed': True,
+            'surgicenter_payment_confirmed_by': self.env.user.id,
+            'surgicenter_payment_confirmed_date': fields.Datetime.now()
+        })
+        self.message_post(
+            body=f"Surgicenter payment confirmed by {self.env.user.name}"
+        )
+        return True
 
     def action_create_medical_checklist(self):
         """Manually create/recreate medical checklist items based on patient age"""

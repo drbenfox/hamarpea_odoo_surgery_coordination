@@ -72,14 +72,88 @@
                     <notebook>
                         <!-- Tab 1: Financials -->
                         <page string="Financials" name="financials">
+                            <field name="currency_id" invisible="1"/>
+
+                            <!-- Sale Order Section -->
                             <group>
                                 <group string="Sale Order">
                                     <field name="sale_order_id"/>
-                                    <field name="deposit_paid" widget="boolean"/>
-                                    <field name="currency_id" invisible="1"/>
+                                    <field name="sale_order_state" invisible="not sale_order_id"
+                                           decoration-info="sale_order_state == 'draft'"
+                                           decoration-warning="sale_order_state == 'sent'"
+                                           decoration-success="sale_order_state in ('sale', 'done')"
+                                           widget="badge"/>
+                                    <field name="surgery_total" string="Sales Order Total" widget="monetary" invisible="not sale_order_id"/>
+                                    <button name="action_create_sale_order"
+                                            string="Create Sale Order"
+                                            type="object"
+                                            class="btn-primary"
+                                            invisible="sale_order_id"/>
                                 </group>
+                            </group>
 
-                                <group string="Insurance">
+                            <!-- Payment Tracking Table -->
+                            <group string="Payment Tracking" invisible="not sale_order_id">
+                                <div colspan="2">
+                                    <table class="table table-sm table-bordered" style="max-width: 600px;">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Source</th>
+                                                <th>Expected</th>
+                                                <th>Received</th>
+                                                <th>Balance</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Client</td>
+                                                <td><field name="expected_client_amount" widget="monetary" nolabel="1"/></td>
+                                                <td><field name="client_received" widget="monetary" nolabel="1" readonly="1"/></td>
+                                                <td><field name="client_balance" widget="monetary" nolabel="1" readonly="1"/></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Insurance</td>
+                                                <td><field name="insurance_approved_amount" widget="monetary" nolabel="1"/></td>
+                                                <td><field name="insurance_received" widget="monetary" nolabel="1"/></td>
+                                                <td><field name="insurance_balance" widget="monetary" nolabel="1" readonly="1"/></td>
+                                            </tr>
+                                            <tr invisible="surgery_location != 'external'">
+                                                <td>Surgicenter</td>
+                                                <td><field name="expected_surgicenter_amount" widget="monetary" nolabel="1" readonly="1"/></td>
+                                                <td><field name="surgicenter_received" widget="monetary" nolabel="1"/></td>
+                                                <td><field name="surgicenter_balance" widget="monetary" nolabel="1" readonly="1"/></td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot class="table-light fw-bold">
+                                            <tr>
+                                                <td>TOTAL</td>
+                                                <td><field name="total_expected" widget="monetary" nolabel="1" readonly="1"/></td>
+                                                <td><field name="total_received" widget="monetary" nolabel="1" readonly="1"/></td>
+                                                <td><field name="total_balance" widget="monetary" nolabel="1" readonly="1"/></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </group>
+
+                            <!-- Financial Clearance Section -->
+                            <group invisible="not sale_order_id">
+                                <group string="Financial Clearance">
+                                    <field name="financial_cleared" readonly="1"/>
+                                    <field name="financial_cleared_by" invisible="not financial_cleared"/>
+                                    <field name="financial_cleared_date" invisible="not financial_cleared"/>
+                                    <button name="action_confirm_financial"
+                                            string="Confirm Financial Clearance"
+                                            type="object"
+                                            class="btn-success"
+                                            icon="fa-check-circle"
+                                            invisible="financial_cleared"/>
+                                </group>
+                            </group>
+
+                            <!-- Insurance Details Section (moved below table) -->
+                            <group string="Insurance Details">
+                                <group>
                                     <label for="insurance_company_id"/>
                                     <div class="o_row">
                                         <field name="insurance_company_id"
@@ -92,15 +166,16 @@
                                     </div>
                                     <field name="is_contracted_insurance"
                                            invisible="not insurance_company_id"/>
+                                </group>
+                                <group>
                                     <field name="insurance_claim_number"
                                            invisible="not insurance_company_id"/>
                                     <field name="insurance_claim_status"
                                            invisible="not insurance_company_id"/>
-                                    <field name="insurance_approved_amount"
-                                           invisible="not insurance_company_id"/>
                                 </group>
                             </group>
 
+                            <!-- Surgery Plan Section -->
                             <group string="Surgery Plan">
                                 <field name="surgery_plan" nolabel="1" placeholder="Doctor describes planned procedures here. Coordinator uses this to build the Sale Order."/>
                             </group>
@@ -147,10 +222,54 @@
                                            options="{'no_create': True}"/>
                                     <field name="calendar_event_id" readonly="1"/>
                                 </group>
+                            </group>
+                        </page>
 
-                                <group string="Surgical Center Commission" invisible="surgery_location != 'external'">
-                                    <field name="expected_surgeon_payment" widget="monetary"/>
-                                    <field name="processing_fee_amount" widget="monetary"/>
+                        <!-- Tab 4: Audit -->
+                        <page string="Audit" name="audit">
+                            <group>
+                                <group string="Audit Status">
+                                    <field name="audit_status" widget="badge"
+                                           decoration-success="audit_status == 'complete'"
+                                           decoration-warning="audit_status == 'incomplete'"/>
+                                </group>
+                            </group>
+
+                            <group string="Insurance Payment" invisible="not insurance_company_id">
+                                <group>
+                                    <field name="insurance_approved_amount" widget="monetary" readonly="1"/>
+                                    <field name="insurance_received" widget="monetary" readonly="1"/>
+                                    <field name="insurance_balance" widget="monetary" readonly="1"/>
+                                </group>
+                                <group>
+                                    <field name="insurance_payment_confirmed"/>
+                                    <field name="insurance_payment_confirmed_by" invisible="not insurance_payment_confirmed"/>
+                                    <field name="insurance_payment_confirmed_date" invisible="not insurance_payment_confirmed"/>
+                                    <button name="action_confirm_insurance_payment"
+                                            string="Confirm Insurance Payment"
+                                            type="object"
+                                            class="btn-success"
+                                            icon="fa-check"
+                                            invisible="insurance_payment_confirmed"/>
+                                </group>
+                            </group>
+
+                            <group string="Surgicenter Payment" invisible="surgery_location != 'external'">
+                                <group>
+                                    <field name="expected_surgicenter_amount" widget="monetary" readonly="1"/>
+                                    <field name="surgicenter_received" widget="monetary" readonly="1"/>
+                                    <field name="surgicenter_balance" widget="monetary" readonly="1"/>
+                                </group>
+                                <group>
+                                    <field name="surgicenter_payment_confirmed"/>
+                                    <field name="surgicenter_payment_confirmed_by" invisible="not surgicenter_payment_confirmed"/>
+                                    <field name="surgicenter_payment_confirmed_date" invisible="not surgicenter_payment_confirmed"/>
+                                    <button name="action_confirm_surgicenter_payment"
+                                            string="Confirm Surgicenter Payment"
+                                            type="object"
+                                            class="btn-success"
+                                            icon="fa-check"
+                                            invisible="surgicenter_payment_confirmed"/>
                                 </group>
                             </group>
                         </page>
