@@ -101,7 +101,7 @@
                             <!-- Payment Lines -->
                             <group string="Payment Plan">
                                 <field name="payment_line_ids" nolabel="1"
-                                       context="{'list_view_ref': 'hamarpea-odoo-surgery-coordination.view_surgery_payment_line_list'}"/>
+                                       context="{'list_view_ref': 'hamarpea_odoo_surgery_coordination.view_surgery_payment_line_list'}"/>
                             </group>
 
                             <!-- Surgery Plan Section -->

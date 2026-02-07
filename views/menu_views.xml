@@ -4,7 +4,7 @@
     <menuitem id="menu_surgery_root"
               name="Surgery"
               sequence="10"
-              web_icon="hamarpea-odoo-surgery-coordination,static/description/icon.png"/>
+              web_icon="hamarpea_odoo_surgery_coordination,static/description/icon.png"/>
 
     <!-- Surgery Cases Menu -->
     <menuitem id="menu_surgery_cases"

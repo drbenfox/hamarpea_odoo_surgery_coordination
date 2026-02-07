@@ -128,7 +128,7 @@ class SurgeryCase(models.Model):
         tracking=True,
         group_expand='_read_group_stage_ids',
         default=lambda self: self.env.ref(
-            'hamarpea-odoo-surgery-coordination.stage_planning',
+            'hamarpea_odoo_surgery_coordination.stage_planning',
             raise_if_not_found=False
         )
     )

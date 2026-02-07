@@ -23,7 +23,7 @@ Track patient journey through surgery with:
         'mail',
         'contacts',
         'hr',
-        'hamarpea-odoo-contacts',  # For insurance fields
+        'hamarpea_odoo_contacts',  # For insurance fields
         'partner_contact_personal_information_page',  # For birthdate
     ],
     'data': [

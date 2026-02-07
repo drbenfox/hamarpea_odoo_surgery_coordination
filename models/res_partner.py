@@ -4,7 +4,7 @@ from odoo import models, fields
 class ResPartner(models.Model):
     _inherit = 'res.partner'
 
-    # Surgical Center fields (account_type = 'operating_room' defined in hamarpea-odoo-contacts)
+    # Surgical Center fields (account_type = 'operating_room' defined in hamarpea_odoo_contacts)
     processing_fee_pct = fields.Float(
         string='Processing Fee %',
         help='Percentage deducted from surgeon fees (e.g., 4.0 for 4%)',
