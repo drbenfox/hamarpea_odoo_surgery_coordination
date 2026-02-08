@@ -596,8 +596,8 @@ class SurgeryCase(models.Model):
 
             # Get payments reconciled with these receivable lines
             for line in receivable_lines:
-                for partial in line.matched_debit_ids:
-                    payment = partial.debit_move_id.payment_id
+                for partial in line.matched_credit_ids:
+                    payment = partial.credit_move_id.payment_id
                     if payment:
                         # Check if we already have this payment
                         existing = PaymentLine.search([
