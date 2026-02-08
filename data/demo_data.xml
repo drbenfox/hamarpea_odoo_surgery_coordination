@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- ==================== KUPOT HOLIM ==================== -->
+        <record id="partner_kupat_holim_clalit" model="res.partner">
+            <field name="name">כללית - Clalit</field>
+            <field name="is_company" eval="True"/>
+            <field name="account_type">kupat_holim</field>
+        </record>
+
+        <record id="partner_kupat_holim_maccabi" model="res.partner">
+            <field name="name">מכבי - Maccabi</field>
+            <field name="is_company" eval="True"/>
+            <field name="account_type">kupat_holim</field>
+        </record>
+
+        <record id="partner_kupat_holim_meuhedet" model="res.partner">
+            <field name="name">מאוחדת - Meuhedet</field>
+            <field name="is_company" eval="True"/>
+            <field name="account_type">kupat_holim</field>
+        </record>
+
+        <record id="partner_kupat_holim_leumit" model="res.partner">
+            <field name="name">לאומית - Leumit</field>
+            <field name="is_company" eval="True"/>
+            <field name="account_type">kupat_holim</field>
+        </record>
+
+        <!-- ==================== PRIVATE INSURANCE ==================== -->
+        <record id="partner_insurance_harel" model="res.partner">
+            <field name="name">הראל - Harel Insurance</field>
+            <field name="is_company" eval="True"/>
+            <field name="account_type">private_insurance</field>
+        </record>
+
+        <record id="partner_insurance_phoenix" model="res.partner">
+            <field name="name">הפניקס - Phoenix Insurance</field>
+            <field name="is_company" eval="True"/>
+            <field name="account_type">private_insurance</field>
+        </record>
+
+        <record id="partner_insurance_menora" model="res.partner">
+            <field name="name">מנורה - Menora Mivtachim</field>
+            <field name="is_company" eval="True"/>
+            <field name="account_type">private_insurance</field>
+        </record>
+
+        <!-- ==================== SURGICAL CENTERS ==================== -->
+        <record id="partner_surgicenter_assuta" model="res.partner">
+            <field name="name">אסותא תל אביב - Assuta Tel Aviv</field>
+            <field name="is_company" eval="True"/>
+            <field name="account_type">operating_room</field>
+            <field name="processing_fee_pct">4.0</field>
+        </record>
+
+        <record id="partner_surgicenter_herzliya" model="res.partner">
+            <field name="name">מרכז רפואי הרצליה - Herzliya Medical Center</field>
+            <field name="is_company" eval="True"/>
+            <field name="account_type">operating_room</field>
+            <field name="processing_fee_pct">3.5</field>
+        </record>
+
+        <!-- ==================== SURGERY PRODUCTS ==================== -->
+        <record id="product_rhinoplasty" model="product.template">
+            <field name="name">Rhinoplasty</field>
+            <field name="type">service</field>
+            <field name="service_tracking">surgery_case</field>
+            <field name="list_price">25000</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+        </record>
+
+        <record id="product_blepharoplasty" model="product.template">
+            <field name="name">Blepharoplasty</field>
+            <field name="type">service</field>
+            <field name="service_tracking">surgery_case</field>
+            <field name="list_price">15000</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+        </record>
+
+        <record id="product_liposuction" model="product.template">
+            <field name="name">Liposuction</field>
+            <field name="type">service</field>
+            <field name="service_tracking">surgery_case</field>
+            <field name="list_price">20000</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+        </record>
+
+        <record id="product_breast_augmentation" model="product.template">
+            <field name="name">Breast Augmentation</field>
+            <field name="type">service</field>
+            <field name="service_tracking">surgery_case</field>
+            <field name="list_price">30000</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+        </record>
+
+        <!-- Informational product (not invoiced) -->
+        <record id="product_surgicenter_fee" model="product.template">
+            <field name="name">Surgical Center Fee</field>
+            <field name="type">service</field>
+            <field name="is_informational" eval="True"/>
+            <field name="list_price">0</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+        </record>
+
+    </data>
+</odoo>
