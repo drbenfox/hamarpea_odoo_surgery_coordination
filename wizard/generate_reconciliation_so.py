@@ -162,15 +162,23 @@ class GenerateReconciliationInvoice(models.TransientModel):
         })
         payment_register.action_create_payments()
 
-        # Update payment lines as paid
+        # Update payment lines
         for payment_line in self.payment_line_ids:
             vals = {
-                'status': 'paid',
                 'payment_date': fields.Date.context_today(self),
             }
-            # If no received amount entered, use expected amount
+            # If no received amount entered, assume full payment
             if not payment_line.received_amount:
                 vals['received_amount'] = payment_line.expected_amount
+            # Set status based on received vs expected
+            received = vals.get('received_amount', payment_line.received_amount) or 0
+            expected = payment_line.expected_amount or 0
+            if expected > 0 and received >= expected:
+                vals['status'] = 'paid'
+            elif received > 0:
+                vals['status'] = 'partial'
+            else:
+                vals['status'] = 'unpaid'
             payment_line.write(vals)
 
         # Open the created Invoice

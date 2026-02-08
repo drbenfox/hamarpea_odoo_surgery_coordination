@@ -579,49 +579,79 @@ class SurgeryCase(models.Model):
         }
 
     def action_sync_client_payments(self):
-        """Sync client payment lines from invoice payments"""
+        """Sync client payment lines from invoice payments.
+
+        Updates the existing client payment line's received_amount
+        rather than creating new rows per payment.
+        """
         self.ensure_one()
         if not self.sale_order_id:
             raise UserError("No Sale Order linked to this surgery case.")
 
         PaymentLine = self.env['surgery.payment.line']
-        synced_count = 0
 
-        # Get all invoices linked to this SO
+        # Collect all payment amounts from SO invoices
+        synced_payment_ids = set()
+        total_received = 0
+        latest_date = False
+        references = []
+
         for invoice in self.sale_order_id.invoice_ids.filtered(lambda i: i.move_type == 'out_invoice'):
-            # Get receivable lines only (these are the ones that get paid)
             receivable_lines = invoice.line_ids.filtered(
                 lambda l: l.account_id.account_type == 'asset_receivable'
             )
-
-            # Get payments reconciled with these receivable lines
             for line in receivable_lines:
                 for partial in line.matched_credit_ids:
                     payment = partial.credit_move_id.payment_id
-                    if payment:
-                        # Check if we already have this payment
-                        existing = PaymentLine.search([
-                            ('surgery_case_id', '=', self.id),
-                            ('payment_id', '=', payment.id)
-                        ])
-                        if not existing:
-                            PaymentLine.create({
-                                'surgery_case_id': self.id,
-                                'payment_source': 'client',
-                                'payment_id': payment.id,
-                                'invoice_id': invoice.id,
-                                'expected_amount': payment.amount,
-                                'received_amount': payment.amount,
-                                'payment_date': payment.date,
-                                'reference': payment.name,
-                                'status': 'paid',  # Payment received = paid
-                            })
-                            synced_count += 1
+                    if payment and payment.id not in synced_payment_ids:
+                        synced_payment_ids.add(payment.id)
+                        total_received += payment.amount
+                        if not latest_date or payment.date > latest_date:
+                            latest_date = payment.date
+                        if payment.name:
+                            references.append(payment.name)
 
-        if synced_count:
-            self.message_post(body=f"Synced {synced_count} client payment(s) from invoices")
+        if not synced_payment_ids:
+            self.message_post(body="No payments found on linked invoices")
+            return True
+
+        # Find or create the client payment line
+        client_line = PaymentLine.search([
+            ('surgery_case_id', '=', self.id),
+            ('payment_source', '=', 'client'),
+        ], limit=1)
+
+        if client_line:
+            old_received = client_line.received_amount or 0
+            if abs(total_received - old_received) < 0.01:
+                self.message_post(body="No new payments to sync")
+                return True
+            # Update existing line
+            vals = {
+                'received_amount': total_received,
+                'payment_date': latest_date,
+                'reference': ', '.join(references),
+            }
+            # Auto-set status based on amounts
+            if total_received >= (client_line.expected_amount or 0):
+                vals['status'] = 'paid'
+            elif total_received > 0:
+                vals['status'] = 'partial'
+            client_line.write(vals)
         else:
-            self.message_post(body="No new payments to sync")
+            # No client line exists — create one
+            status = 'paid' if total_received >= self.sale_order_total else 'partial'
+            PaymentLine.create({
+                'surgery_case_id': self.id,
+                'payment_source': 'client',
+                'expected_amount': self.sale_order_total,
+                'received_amount': total_received,
+                'payment_date': latest_date,
+                'reference': ', '.join(references),
+                'status': status,
+            })
+
+        self.message_post(body=f"Synced client payments: received {self.currency_id.symbol}{total_received:,.2f}")
         return True
 
     def _ensure_surgicenter_line(self):
